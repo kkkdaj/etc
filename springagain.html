@@ -349,6 +349,14 @@ const TEAMS = [
 
 const ADMIN_PW = '1225';
 
+const DEFAULT_PASSWORDS = {
+  '권서영샘': '0628', '최원석샘': '1209', '신지은샘': '1121',
+  '김다솔샘': '1015', '인정한샘': '1001', '백시안샘': '0911',
+  '김연우샘': '0113', '한진우샘': '0310', '김도형샘': '1002',
+  '한증열샘': '0515', '채린예지샘': '0114', '서연수진샘': '1029',
+  '은서재승샘': '0317', '대원혜나샘': '0424', '새샘': '0503'
+};
+
 const WEEKS = [
   {
     n: 1, period: '4/12-18', title: '다시 바라, 봄', mission: '말씀 묵상노트 작성',
@@ -409,9 +417,11 @@ const S = {
   isAdmin: false,
   submissions: {},   // key: `${team}_${week}` → data
   scores: {},        // key: `${team}_${week}` → number
+  passwords: { ...DEFAULT_PASSWORDS },
   feedWeek: 1,
   submitWeek: 1,
   showTeamModal: false,
+  pendingTeam: null, // 비밀번호 확인 중인 팀
   dataLoaded: false,
   previews: {},      // key: field key → { url, isVideo }
 };
@@ -438,6 +448,12 @@ function initFB() {
 }
 
 function startSync() {
+  // 비밀번호 동기화
+  db.collection('config').doc('passwords').onSnapshot(snap => {
+    if (snap.exists) S.passwords = { ...DEFAULT_PASSWORDS, ...snap.data() };
+    else S.passwords = { ...DEFAULT_PASSWORDS };
+  });
+
   db.collection('submissions').onSnapshot(snap => {
     snap.docChanges().forEach(ch => {
       if (ch.type === 'removed') delete S.submissions[ch.doc.id];
@@ -798,6 +814,22 @@ function renderAdmin() {
   </div>
   <div class="card" style="margin-bottom:16px;text-align:center;font-size:13px;color:var(--muted);">
     각 샘의 제출물을 확인하고 점수(1 / 3 / 5점)를 부여하세요
+  </div>
+
+  <div style="margin-bottom:24px;">
+    <div class="admin-week-header">
+      <span>🔑 샘별 비밀번호 관리</span>
+      <button onclick="saveAllPasswords()" class="btn btn-pink btn-sm">저장</button>
+    </div>
+    <div class="card" style="padding:12px;">
+      ${TEAMS.map(t => `
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+          <div style="font-size:13px;font-weight:700;flex:1;">${t}</div>
+          <input type="text" id="pw-${t}" value="${S.passwords[t] || DEFAULT_PASSWORDS[t] || ''}"
+            style="width:90px;padding:6px 10px;border:2px solid var(--border);border-radius:8px;font-size:14px;text-align:center;font-family:inherit;">
+        </div>
+      `).join('')}
+    </div>
   </div>`;
 
   WEEKS.forEach(w => {
@@ -844,6 +876,21 @@ function renderAdmin() {
 
 /* ── TEAM MODAL ── */
 function renderTeamModal() {
+  if (S.pendingTeam) {
+    return `<div class="overlay" onclick="if(event.target===this){S.pendingTeam=null;render()}">
+      <div class="modal">
+        <div class="modal-title">🔒 ${S.pendingTeam}</div>
+        <div style="font-size:13px;color:var(--muted);text-align:center;margin-bottom:16px;">비밀번호를 입력하세요</div>
+        <div class="form-group">
+          <input type="password" class="form-input" id="team-pw" placeholder="비밀번호"
+            onkeydown="if(event.key==='Enter')verifyTeamPw()" autofocus
+            style="text-align:center;font-size:20px;letter-spacing:6px;">
+        </div>
+        <button class="btn btn-pink" onclick="verifyTeamPw()">확인</button>
+        <button class="btn btn-outline" style="margin-top:8px;" onclick="S.pendingTeam=null;render()">뒤로</button>
+      </div>
+    </div>`;
+  }
   return `<div class="overlay" onclick="if(event.target===this)closeTeamModal()">
     <div class="modal">
       <div class="modal-title">🌱 내 샘 선택</div>
@@ -863,12 +910,27 @@ function goSubmit(week) { S.submitWeek = week; S.view = 'submit'; render(); wind
 function setSubmitWeek(n) { S.submitWeek = n; S.previews = {}; render(); window.scrollTo(0,0); }
 function setFeedWeek(n) { S.feedWeek = n; render(); }
 
-function openTeamModal() { S.showTeamModal = true; render(); }
-function closeTeamModal() { S.showTeamModal = false; render(); }
+function openTeamModal() { S.showTeamModal = true; S.pendingTeam = null; render(); }
+function closeTeamModal() { S.showTeamModal = false; S.pendingTeam = null; render(); }
 function pickTeam(t) {
-  S.team = t; localStorage.setItem('rv_team', t);
-  S.showTeamModal = false; render();
-  showToast(`${t}로 선택됐습니다 🌸`);
+  S.pendingTeam = t;
+  render();
+  setTimeout(() => { const el = document.getElementById('team-pw'); if(el) el.focus(); }, 50);
+}
+function verifyTeamPw() {
+  const el = document.getElementById('team-pw');
+  if (!el) return;
+  const correct = S.passwords[S.pendingTeam] || DEFAULT_PASSWORDS[S.pendingTeam];
+  if (el.value === correct) {
+    S.team = S.pendingTeam;
+    localStorage.setItem('rv_team', S.team);
+    S.showTeamModal = false; S.pendingTeam = null;
+    render();
+    showToast(`${S.team}로 선택됐습니다 🌸`);
+  } else {
+    showToast('비밀번호가 올바르지 않습니다');
+    el.value = '';
+  }
 }
 
 function adminLogin() {
@@ -942,6 +1004,16 @@ async function doSubmit() {
     showToast('오류: ' + e.message);
     if (btn) { btn.disabled = false; btn.textContent = '제출하기 🌸'; }
   }
+}
+
+async function saveAllPasswords() {
+  const data = {};
+  TEAMS.forEach(t => {
+    const el = document.getElementById(`pw-${t}`);
+    if (el && el.value.trim()) data[t] = el.value.trim();
+  });
+  await db.collection('config').doc('passwords').set(data);
+  showToast('비밀번호가 저장됐습니다 🔑');
 }
 
 async function setScore(team, week, score) {
