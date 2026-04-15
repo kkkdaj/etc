@@ -776,9 +776,10 @@ function renderLeaderboard() {
     </div>`;
 
   list.forEach(({ t, wsc, total, subCnt }, i) => {
-    const rank = i + 1;
+    const rank = i === 0 ? 1 : (list[i].total === list[i-1].total ? list[i-1]._rank : i + 1);
+    list[i]._rank = rank;
     const emo = rank===1?'🥇':rank===2?'🥈':rank===3?'🥉':rank;
-    const cls = rank<=3?`rank-${rank}`:'';
+    const cls = rank<=3?`rank-${rank}`:`rank-other`;
     h += `<div class="rank-card">
       <div class="rank-num ${cls}">${emo}</div>
       <div class="rank-info">
