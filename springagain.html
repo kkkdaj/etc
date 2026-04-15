@@ -1,0 +1,989 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Re:View 다시, 봄 🌸</title>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+  <style>
+    :root {
+      --pink: #E8A4B8;
+      --pink-dark: #C97A90;
+      --pink-light: #FFF0F5;
+      --green: #A8C5A0;
+      --green-dark: #7DAB73;
+      --bg: #FFF9F0;
+      --white: #FFFFFF;
+      --text: #2D2D2D;
+      --muted: #9B9B9B;
+      --border: #EDE0E6;
+      --shadow: 0 2px 14px rgba(200, 120, 150, 0.12);
+      --r: 16px;
+      --r-sm: 10px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', '맑은 고딕', 'Noto Sans KR', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
+    /* ── HEADER ── */
+    .header {
+      background: linear-gradient(145deg, #FAD4DF 0%, #FDEEF2 40%, #E8F5E4 100%);
+      padding: 18px 16px 14px;
+      text-align: center;
+      position: sticky; top: 0; z-index: 100;
+      box-shadow: 0 2px 10px rgba(220, 150, 170, 0.2);
+    }
+    .header-sub { font-size: 11px; color: #B06070; letter-spacing: 0.8px; margin-bottom: 3px; }
+    .header-title { font-size: 20px; font-weight: 900; color: #8A2840; letter-spacing: -0.5px; }
+    .header-team-btn {
+      display: inline-flex; align-items: center; gap: 5px;
+      background: rgba(255,255,255,0.75); border-radius: 20px;
+      padding: 5px 14px; font-size: 13px; font-weight: 700;
+      cursor: pointer; color: #8A2840; margin-top: 8px;
+      border: 1.5px solid rgba(232,164,184,0.5);
+      transition: background 0.2s;
+    }
+    .header-team-btn:hover { background: rgba(255,255,255,0.95); }
+    .progress-dots { display: flex; gap: 5px; justify-content: center; margin-top: 8px; }
+    .progress-dot { width: 7px; height: 7px; border-radius: 50%; background: rgba(255,255,255,0.4); }
+    .progress-dot.done { background: #5CBF6A; }
+    .progress-dot.scored { background: #FFB74D; }
+
+    /* ── BOTTOM NAV ── */
+    .nav {
+      position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
+      width: 100%; max-width: 600px;
+      display: flex; background: white;
+      border-top: 1px solid var(--border);
+      z-index: 100; padding-bottom: env(safe-area-inset-bottom, 0);
+    }
+    .nav-btn {
+      flex: 1; padding: 9px 4px 10px;
+      border: none; background: none; cursor: pointer;
+      display: flex; flex-direction: column; align-items: center; gap: 2px;
+      font-size: 10px; color: var(--muted); transition: color 0.2s;
+    }
+    .nav-btn .ico { font-size: 20px; }
+    .nav-btn.active { color: var(--pink-dark); }
+    .nav-btn.active .ico { transform: scale(1.1); }
+
+    /* ── MAIN ── */
+    .main { padding: 14px 14px 80px; }
+    .section-title { font-size: 17px; font-weight: 800; margin-bottom: 14px; color: var(--text); }
+
+    /* ── CARD ── */
+    .card {
+      background: var(--white); border-radius: var(--r);
+      padding: 16px; margin-bottom: 12px;
+      box-shadow: var(--shadow);
+    }
+
+    /* ── WEEK CARDS (home) ── */
+    .week-card {
+      background: var(--white); border-radius: var(--r);
+      padding: 15px; margin-bottom: 10px;
+      box-shadow: var(--shadow);
+      border-left: 4px solid var(--pink);
+      cursor: pointer; transition: transform 0.15s, box-shadow 0.15s;
+    }
+    .week-card:active { transform: scale(0.98); box-shadow: none; }
+    .week-card.done { border-left-color: var(--green-dark); }
+    .week-card.scored { border-left-color: #FFB74D; }
+    .wc-meta { font-size: 11px; color: var(--muted); margin-bottom: 3px; }
+    .wc-title { font-size: 16px; font-weight: 800; }
+    .wc-mission { font-size: 12px; color: var(--pink-dark); margin-top: 3px; }
+    .wc-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 9px; }
+    .status-badge {
+      display: inline-block; padding: 3px 10px; border-radius: 20px;
+      font-size: 11px; font-weight: 700;
+    }
+    .status-done { background: #E8F5E9; color: #388E3C; }
+    .status-pending { background: #FFF8E1; color: #F57C00; }
+    .score-label { font-size: 14px; font-weight: 800; color: #F57C00; }
+
+    /* ── BUTTONS ── */
+    .btn {
+      display: block; width: 100%; padding: 14px; border: none;
+      border-radius: var(--r-sm); font-size: 15px; font-weight: 700;
+      cursor: pointer; font-family: inherit;
+      transition: opacity 0.2s, transform 0.15s;
+    }
+    .btn:active { transform: scale(0.98); }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+    .btn-pink { background: linear-gradient(135deg, #F0A0B8 0%, var(--pink-dark) 100%); color: white; }
+    .btn-green { background: linear-gradient(135deg, #B5D5AD 0%, var(--green-dark) 100%); color: white; }
+    .btn-outline { background: none; border: 2px solid var(--pink); color: var(--pink-dark); }
+    .btn-sm { padding: 9px 14px; font-size: 13px; width: auto; display: inline-block; }
+
+    /* ── FORM ── */
+    .form-group { margin-bottom: 16px; }
+    .form-label { display: block; font-size: 13px; font-weight: 700; margin-bottom: 6px; color: var(--text); }
+    .form-input {
+      width: 100%; padding: 12px; border: 2px solid var(--border);
+      border-radius: var(--r-sm); font-size: 15px; font-family: inherit;
+      background: white; transition: border-color 0.2s; color: var(--text);
+    }
+    .form-input:focus { outline: none; border-color: var(--pink); }
+    textarea.form-input { min-height: 120px; resize: vertical; line-height: 1.6; }
+
+    /* ── UPLOAD ── */
+    .upload-zone {
+      border: 2.5px dashed var(--pink);
+      border-radius: var(--r-sm); padding: 28px 16px;
+      text-align: center; cursor: pointer;
+      background: var(--pink-light); transition: background 0.2s;
+      position: relative;
+    }
+    .upload-zone:hover { background: #FFE4EF; }
+    .upload-zone .upload-ico { font-size: 36px; display: block; margin-bottom: 6px; }
+    .upload-zone .upload-hint { font-size: 13px; color: var(--muted); }
+    .upload-preview {
+      width: 100%; border-radius: var(--r-sm);
+      max-height: 280px; object-fit: cover; display: block;
+    }
+    .upload-video {
+      width: 100%; border-radius: var(--r-sm);
+      max-height: 280px; display: block;
+    }
+
+    /* ── MODAL ── */
+    .overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.45);
+      z-index: 200; display: flex; align-items: flex-end; justify-content: center;
+    }
+    .modal {
+      background: white; border-radius: 24px 24px 0 0;
+      width: 100%; max-width: 600px; max-height: 88vh;
+      overflow-y: auto; padding: 24px 20px;
+      padding-bottom: calc(24px + env(safe-area-inset-bottom, 0));
+    }
+    .modal-title { font-size: 17px; font-weight: 800; text-align: center; margin-bottom: 16px; }
+    .team-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+    .team-btn {
+      padding: 11px 4px; border: 2px solid var(--border);
+      border-radius: var(--r-sm); background: white; cursor: pointer;
+      font-size: 12.5px; font-weight: 700; color: var(--text);
+      text-align: center; transition: all 0.15s; font-family: inherit;
+    }
+    .team-btn.active { border-color: var(--pink-dark); background: var(--pink-light); color: var(--pink-dark); }
+
+    /* ── TABS ── */
+    .tabs { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 10px; scrollbar-width: none; }
+    .tabs::-webkit-scrollbar { display: none; }
+    .tab {
+      padding: 6px 14px; border: 2px solid var(--border);
+      border-radius: 20px; background: white; cursor: pointer;
+      font-size: 13px; font-weight: 700; white-space: nowrap;
+      color: var(--muted); transition: all 0.15s; font-family: inherit;
+    }
+    .tab.active { border-color: var(--pink-dark); background: var(--pink-dark); color: white; }
+
+    /* ── FEED CARD ── */
+    .feed-card { background: white; border-radius: var(--r); overflow: hidden; margin-bottom: 16px; box-shadow: var(--shadow); }
+    .feed-head {
+      padding: 12px 14px; display: flex;
+      justify-content: space-between; align-items: center;
+      border-bottom: 1px solid var(--border);
+    }
+    .feed-team { font-weight: 800; font-size: 15px; }
+    .feed-week { font-size: 11px; color: var(--muted); margin-top: 1px; }
+    .feed-img { width: 100%; display: block; }
+    .feed-video { width: 100%; max-height: 300px; display: block; }
+    .feed-body { padding: 12px 14px; }
+    .feed-text { font-size: 14px; line-height: 1.7; white-space: pre-wrap; color: var(--text); }
+    .feed-count { font-size: 13px; color: var(--muted); margin-top: 6px; }
+    .feed-date { font-size: 11px; color: #C0C0C0; margin-top: 4px; }
+    .score-chip {
+      display: inline-flex; align-items: center; justify-content: center;
+      min-width: 34px; height: 34px; border-radius: 50%;
+      font-weight: 900; font-size: 13px; color: white;
+    }
+    .chip-1 { background: #64B5F6; }
+    .chip-3 { background: #81C784; }
+    .chip-5 { background: #FFB300; color: #5D3A00; }
+    .chip-none { background: #E0E0E0; color: #999; font-size: 12px; }
+
+    /* ── LEADERBOARD ── */
+    .rank-card {
+      background: white; border-radius: var(--r);
+      padding: 14px 16px; margin-bottom: 10px;
+      box-shadow: var(--shadow); display: flex; align-items: center; gap: 14px;
+    }
+    .rank-num { font-size: 22px; font-weight: 900; width: 38px; text-align: center; flex-shrink: 0; }
+    .rank-1 { color: #FFD700; }
+    .rank-2 { color: #ADADAD; }
+    .rank-3 { color: #CD7F32; }
+    .rank-info { flex: 1; min-width: 0; }
+    .rank-name { font-size: 15px; font-weight: 800; }
+    .rank-detail { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 5px; }
+    .week-chip {
+      font-size: 11px; padding: 2px 8px; border-radius: 4px;
+      background: var(--bg); color: var(--muted);
+    }
+    .week-chip.has-score { background: #FFF3E0; color: #E65100; font-weight: 700; }
+    .rank-total { font-size: 26px; font-weight: 900; color: var(--pink-dark); flex-shrink: 0; }
+    .rank-sub-text { font-size: 11px; color: var(--muted); text-align: right; margin-top: 2px; }
+
+    /* ── ADMIN ── */
+    .admin-week-header {
+      font-size: 15px; font-weight: 800; margin-bottom: 10px;
+      padding-bottom: 8px; border-bottom: 2px solid var(--border);
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .admin-row {
+      background: white; border-radius: var(--r-sm);
+      padding: 12px; margin-bottom: 8px; box-shadow: var(--shadow);
+    }
+    .admin-row-team { font-size: 14px; font-weight: 700; margin-bottom: 6px; }
+    .preview-toggle {
+      font-size: 12px; color: var(--pink-dark); cursor: pointer;
+      margin-bottom: 8px; display: block; user-select: none;
+    }
+    .preview-box { display: none; margin-bottom: 10px; }
+    .preview-box.open { display: block; }
+    .score-buttons { display: flex; gap: 8px; }
+    .score-btn {
+      flex: 1; padding: 10px; border: 2.5px solid var(--border);
+      border-radius: var(--r-sm); background: white; cursor: pointer;
+      font-size: 16px; font-weight: 800; text-align: center;
+      transition: all 0.15s; font-family: inherit;
+    }
+    .score-btn.sel-1 { border-color: #64B5F6; background: #E3F2FD; color: #1565C0; }
+    .score-btn.sel-3 { border-color: #81C784; background: #E8F5E9; color: #1B5E20; }
+    .score-btn.sel-5 { border-color: #FFB300; background: #FFFDE7; color: #E65100; }
+    .no-submit-text { font-size: 13px; color: var(--muted); padding: 8px 0; }
+
+    /* ── SETUP SCREEN ── */
+    .setup-wrap {
+      min-height: 100vh; display: flex; align-items: center; justify-content: center;
+      padding: 24px; background: linear-gradient(135deg, #FFF0F5 0%, #F0FFF0 100%);
+    }
+    .setup-card {
+      background: white; border-radius: var(--r); padding: 32px 24px;
+      max-width: 420px; width: 100%; box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+    }
+    .setup-title { font-size: 22px; font-weight: 900; color: #8A2840; text-align: center; margin-bottom: 6px; }
+    .setup-sub { text-align: center; color: var(--muted); font-size: 13px; margin-bottom: 24px; }
+    .setup-step { margin-bottom: 18px; }
+    .step-row { display: flex; align-items: flex-start; gap: 10px; }
+    .step-num {
+      flex-shrink: 0; width: 22px; height: 22px; border-radius: 50%;
+      background: var(--pink); color: white;
+      font-size: 12px; font-weight: 800;
+      display: flex; align-items: center; justify-content: center; margin-top: 1px;
+    }
+    .step-title { font-size: 14px; font-weight: 700; }
+    .step-desc { font-size: 12px; color: var(--muted); margin-top: 3px; line-height: 1.5; }
+    .setup-note {
+      margin-top: 20px; padding: 12px; background: var(--pink-light);
+      border-radius: var(--r-sm); font-size: 12px; color: #888; text-align: center;
+    }
+    code { background: #F5F5F5; padding: 2px 6px; border-radius: 4px; font-size: 12px; font-family: monospace; }
+
+    /* ── MISC ── */
+    .toast {
+      position: fixed; bottom: 76px; left: 50%; transform: translateX(-50%);
+      background: rgba(50,50,50,0.92); color: white; padding: 11px 22px;
+      border-radius: 22px; font-size: 13px; font-weight: 600;
+      z-index: 400; opacity: 0; transition: opacity 0.3s; white-space: nowrap;
+      max-width: calc(100vw - 32px); text-align: center;
+    }
+    .toast.show { opacity: 1; }
+    .empty-state { text-align: center; padding: 48px 20px; color: var(--muted); }
+    .empty-state .ico { font-size: 44px; margin-bottom: 12px; }
+    .loading-state { text-align: center; padding: 56px 20px; color: var(--muted); }
+    .spinner {
+      width: 32px; height: 32px; border: 3px solid var(--border);
+      border-top-color: var(--pink); border-radius: 50%;
+      animation: spin 0.8s linear infinite; margin: 0 auto 12px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .mission-box {
+      background: var(--pink-light); border-radius: var(--r-sm);
+      padding: 12px 14px; font-size: 13px; color: #666;
+      line-height: 1.65; margin-bottom: 16px; border-left: 3px solid var(--pink);
+    }
+    .stat-row { display: flex; gap: 0; }
+    .stat-item { flex: 1; text-align: center; }
+    .stat-item + .stat-item { border-left: 1px solid var(--border); }
+    .stat-num { font-size: 26px; font-weight: 900; }
+    .stat-label { font-size: 11px; color: var(--muted); margin-top: 2px; }
+    a { color: var(--pink-dark); }
+  </style>
+</head>
+<body>
+
+<div id="app"></div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ============================================================
+   FIREBASE CONFIG
+   아래 YOUR_... 부분을 Firebase 콘솔의 웹앱 config로 교체하세요
+   ============================================================ */
+const firebaseConfig = {
+  apiKey: "AIzaSyCtuxl4SF0Odq7JG3q6fil8AE3NRb1Hit0",
+  authDomain: "spring-again-project.firebaseapp.com",
+  projectId: "spring-again-project",
+  storageBucket: "spring-again-project.firebasestorage.app",
+  messagingSenderId: "91125342416",
+  appId: "1:91125342416:web:720ea01490c31145df3ed5",
+  measurementId: "G-SJZX6LXEWJ"
+};
+
+/* ============================================================
+   CONSTANTS
+   ============================================================ */
+const TEAMS = [
+  '권서영샘', '최원석샘', '신지은샘', '김다솔샘', '인정한샘',
+  '백시안샘', '김연우샘', '한진우샘', '김도형샘', '한증열샘',
+  '채린예지샘', '서연수진샘', '은서재승샘', '대원혜나샘', '새샘'
+];
+
+const ADMIN_PW = '1225';
+
+const WEEKS = [
+  {
+    n: 1, period: '4/12-18', title: '다시 바라, 봄', mission: '말씀 묵상노트 작성',
+    desc: '쉼숨삶 묵상노트 또는 생명의샘 큐티책을 활용해서 월요일(4/13)부터 토요일(4/18)까지 나만의 말씀묵상 내용을 적어봅니다.',
+    fields: [
+      { type: 'image', label: '베스트 묵상 사진', key: 'media' },
+      { type: 'number', label: '전체 묵상 횟수', key: 'count', ph: '예) 18' }
+    ]
+  },
+  {
+    n: 2, period: '4/19-25', title: '다시 일어나, 봄', mission: '사연 공모전',
+    desc: '내가 지치거나 무너져 있었을 때 나를 다시 일으켜 세운 말씀 한 구절, 찬양 가사, 믿음의 사람들의 격려 한 마디 또는 행동 등을 간단한 사연과 함께 소개합니다.',
+    fields: [
+      { type: 'image', label: '베스트 사연 사진', key: 'media' },
+      { type: 'number', label: '참여 샘원 명수', key: 'count', ph: '예) 12' }
+    ]
+  },
+  {
+    n: 3, period: '4/26-5/2', title: '다시 기뻐해, 봄', mission: '단체사진 콘테스트',
+    desc: '샘별로 가장 기쁘거나 행복해 보이는 모습의 사진이나 영상을 찍어서 해당 사진의 주제 및 컨셉을 설명하는 글과 함께 올립니다.',
+    fields: [
+      { type: 'media', label: '단체 사진 또는 영상', key: 'media' },
+      { type: 'textarea', label: '주제 / 컨셉 설명', key: 'text', ph: '사진 또는 영상의 주제와 컨셉을 설명해주세요' }
+    ]
+  },
+  {
+    n: 4, period: '5/3-9', title: '다시 사랑해, 봄', mission: '사랑의 편지 쓰기',
+    desc: '5월 가정의 달을 맞아 사랑하는 가족에게 편지를 써서 내용을 인증 후 전달합니다. (편지지 제공)',
+    fields: [
+      { type: 'image', label: '베스트 편지 사진', key: 'media' },
+      { type: 'number', label: '참여 샘원 명수', key: 'count', ph: '예) 10' }
+    ]
+  },
+  {
+    n: 5, period: '5/10-16', title: '다시 기도해, 봄', mission: '릴레이 중보기도',
+    desc: '샘에서 서로의 기도제목을 나누고, 일주일 간 각자의 기도 날짜 및 시간을 정해서 릴레이 방식으로 기도의 끈을 이어갑니다.',
+    fields: [
+      { type: 'textarea', label: '샘원 전체 기도제목', key: 'text', ph: '기도제목을 입력해주세요' },
+      { type: 'number', label: '참여 샘원 명수', key: 'count', ph: '예) 15' }
+    ]
+  },
+  {
+    n: 6, period: '5/17-23', title: '다시 기다려, 봄', mission: '나만의 기도문 작성',
+    desc: '곧 다가올 성령강림주일(5/24)을 기다리며, 성령님이 내 삶에 함께하여 주시고 내 마음과 생각을 인도하여 주시기를 간구하는 기도문을 나만의 언어로 작성해 봅니다.',
+    fields: [
+      { type: 'textarea', label: '베스트 기도문', key: 'text', ph: '기도문을 입력해주세요' },
+      { type: 'number', label: '참여 샘원 명수', key: 'count', ph: '예) 15' }
+    ]
+  }
+];
+
+/* ============================================================
+   STATE
+   ============================================================ */
+const S = {
+  view: 'home',
+  team: localStorage.getItem('rv_team') || null,
+  isAdmin: false,
+  submissions: {},   // key: `${team}_${week}` → data
+  scores: {},        // key: `${team}_${week}` → number
+  feedWeek: 1,
+  submitWeek: 1,
+  showTeamModal: false,
+  dataLoaded: false,
+  previews: {},      // key: field key → { url, isVideo }
+};
+
+/* ============================================================
+   FIREBASE
+   ============================================================ */
+let db, fbReady = false;
+
+/* ============================================================
+   CLOUDINARY CONFIG
+   ============================================================ */
+const CLOUDINARY_CLOUD = 'djtjurl0w';
+const CLOUDINARY_PRESET = 'ryrbgcha';
+
+function initFB() {
+  try {
+    if (firebaseConfig.apiKey === 'YOUR_API_KEY') return false;
+    firebase.initializeApp(firebaseConfig);
+    db = firebase.firestore();
+    fbReady = true;
+    return true;
+  } catch(e) { console.error(e); return false; }
+}
+
+function startSync() {
+  db.collection('submissions').onSnapshot(snap => {
+    snap.docChanges().forEach(ch => {
+      if (ch.type === 'removed') delete S.submissions[ch.doc.id];
+      else S.submissions[ch.doc.id] = ch.doc.data();
+    });
+    S.dataLoaded = true;
+    render();
+  }, err => { showToast('데이터 로드 실패: ' + err.message); S.dataLoaded = true; render(); });
+
+  db.collection('scores').onSnapshot(snap => {
+    snap.docChanges().forEach(ch => {
+      if (ch.type === 'removed') delete S.scores[ch.doc.id];
+      else S.scores[ch.doc.id] = ch.doc.data().score;
+    });
+    render();
+  });
+}
+
+async function saveSubmission(team, week, data) {
+  const key = `${team}_${week}`;
+  await db.collection('submissions').doc(key).set({
+    ...data, team, week,
+    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+  });
+}
+
+async function saveScore(team, week, score) {
+  const key = `${team}_${week}`;
+  await db.collection('scores').doc(key).set({
+    team, week, score,
+    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+  });
+}
+
+async function uploadFile(file) {
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('upload_preset', CLOUDINARY_PRESET);
+  const resourceType = file.type.startsWith('video/') ? 'video' : 'image';
+  const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD}/${resourceType}/upload`, {
+    method: 'POST', body: formData
+  });
+  if (!res.ok) throw new Error('이미지 업로드 실패');
+  const data = await res.json();
+  return data.secure_url;
+}
+
+/* ============================================================
+   RENDER
+   ============================================================ */
+function render() {
+  const app = document.getElementById('app');
+  if (!fbReady) { app.innerHTML = renderSetup(); return; }
+  app.innerHTML = renderHeader() + '<div class="main">' + renderView() + '</div>' + renderNav() +
+    (S.showTeamModal ? renderTeamModal() : '');
+}
+
+/* ── SETUP ── */
+function renderSetup() {
+  return `<div class="setup-wrap"><div class="setup-card">
+    <div style="text-align:center;font-size:52px;margin-bottom:12px;">🌸</div>
+    <div class="setup-title">Re:View 다시, 봄</div>
+    <div class="setup-sub">Firebase 설정 후 시작하세요</div>
+    <div class="setup-step">
+      <div class="step-row"><div class="step-num">1</div><div>
+        <div class="step-title">Firebase 프로젝트 생성</div>
+        <div class="step-desc"><a href="https://console.firebase.google.com" target="_blank">console.firebase.google.com</a>에서 새 프로젝트를 만드세요</div>
+      </div></div>
+    </div>
+    <div class="setup-step">
+      <div class="step-row"><div class="step-num">2</div><div>
+        <div class="step-title">웹 앱 추가 &amp; Config 복사</div>
+        <div class="step-desc">프로젝트 설정 → 앱 추가(웹) → Config 코드 복사</div>
+      </div></div>
+    </div>
+    <div class="setup-step">
+      <div class="step-row"><div class="step-num">3</div><div>
+        <div class="step-title">Firestore &amp; Storage 활성화</div>
+        <div class="step-desc">빌드 → Firestore Database (테스트 모드)<br>빌드 → Storage (테스트 모드)</div>
+      </div></div>
+    </div>
+    <div class="setup-step">
+      <div class="step-row"><div class="step-num">4</div><div>
+        <div class="step-title">index.html 수정</div>
+        <div class="step-desc">파일 상단의 <code>firebaseConfig</code>에 복사한 값을 붙여넣기</div>
+      </div></div>
+    </div>
+    <div class="setup-note">설정 완료 후 파일을 저장하고 새로고침하세요</div>
+  </div></div>`;
+}
+
+/* ── HEADER ── */
+function renderHeader() {
+  const teamLabel = S.team || '샘 선택하기';
+  let dots = '';
+  if (S.team) {
+    WEEKS.forEach(w => {
+      const key = `${S.team}_${w.n}`;
+      const sub = S.submissions[key];
+      const sc = S.scores[key];
+      dots += `<div class="progress-dot${sc ? ' scored' : sub ? ' done' : ''}"></div>`;
+    });
+  }
+  return `<div class="header">
+    <div class="header-sub">부활절 기쁨의 50일 프로젝트</div>
+    <div class="header-title">Re:View 다시, 봄 🌸</div>
+    <div class="header-team-btn" onclick="openTeamModal()">
+      ${S.team ? '🌱' : '👤'} ${teamLabel} ▾
+    </div>
+    ${S.team ? `<div class="progress-dots">${dots}</div>` : ''}
+  </div>`;
+}
+
+/* ── NAV ── */
+function renderNav() {
+  const items = [
+    { id: 'home', ico: '🏠', label: '홈' },
+    { id: 'submit', ico: '✏️', label: '제출' },
+    { id: 'feed', ico: '📋', label: '전체보기' },
+    { id: 'leaderboard', ico: '🏆', label: '순위' },
+    { id: 'admin', ico: '⚙️', label: '관리자' },
+  ];
+  return `<nav class="nav">${items.map(it =>
+    `<button class="nav-btn${S.view===it.id?' active':''}" onclick="go('${it.id}')">
+      <span class="ico">${it.ico}</span>${it.label}
+    </button>`
+  ).join('')}</nav>`;
+}
+
+/* ── VIEWS ── */
+function renderView() {
+  if (!S.dataLoaded) return `<div class="loading-state"><div class="spinner"></div>불러오는 중...</div>`;
+  switch(S.view) {
+    case 'home': return renderHome();
+    case 'submit': return renderSubmit();
+    case 'feed': return renderFeed();
+    case 'leaderboard': return renderLeaderboard();
+    case 'admin': return renderAdmin();
+    default: return renderHome();
+  }
+}
+
+/* ── HOME ── */
+function renderHome() {
+  let h = '';
+  if (!S.team) {
+    h += `<div class="card" style="text-align:center;padding:28px 20px;">
+      <div style="font-size:48px;margin-bottom:12px;">🌸</div>
+      <div style="font-size:16px;font-weight:800;margin-bottom:8px;">반갑습니다!</div>
+      <div style="font-size:14px;color:var(--muted);margin-bottom:18px;">위의 버튼을 눌러 본인의 샘을 선택해 주세요.</div>
+      <button class="btn btn-pink" onclick="openTeamModal()">샘 선택하기</button>
+    </div>`;
+  }
+  h += `<div class="section-title">📅 주차별 미션</div>`;
+  WEEKS.forEach(w => {
+    const key = S.team ? `${S.team}_${w.n}` : null;
+    const sub = key ? S.submissions[key] : null;
+    const sc = key ? S.scores[key] : null;
+    const cls = sc ? 'scored' : sub ? 'done' : '';
+    h += `<div class="week-card ${cls}" onclick="goSubmit(${w.n})">
+      <div class="wc-meta">${w.n}주차 · ${w.period}</div>
+      <div class="wc-title">${w.title}</div>
+      <div class="wc-mission">미션: ${w.mission}</div>
+      <div class="wc-footer">
+        <span class="status-badge ${sub ? 'status-done' : 'status-pending'}">
+          ${sub ? '✓ 제출완료' : '미제출'}
+        </span>
+        ${sc ? `<span class="score-label">${sc}점</span>` : ''}
+      </div>
+    </div>`;
+  });
+  if (S.team) {
+    const total = WEEKS.reduce((s, w) => s + (S.scores[`${S.team}_${w.n}`] || 0), 0);
+    const submitted = WEEKS.filter(w => !!S.submissions[`${S.team}_${w.n}`]).length;
+    h += `<div class="card" style="text-align:center;padding:20px;">
+      <div style="font-size:12px;color:var(--muted);margin-bottom:4px;">${S.team} 현재 총점</div>
+      <div style="font-size:40px;font-weight:900;color:var(--pink-dark);">${total}<span style="font-size:18px;">점</span></div>
+      <div style="font-size:12px;color:var(--muted);margin-top:4px;">제출 ${submitted} / 6주차</div>
+    </div>`;
+  }
+  return h;
+}
+
+/* ── SUBMIT ── */
+function renderSubmit() {
+  if (!S.team) return `<div class="empty-state">
+    <div class="ico">🌱</div>
+    <div style="font-size:15px;font-weight:700;margin-bottom:12px;">샘을 먼저 선택해주세요</div>
+    <button class="btn btn-pink" style="max-width:180px;margin:0 auto;" onclick="openTeamModal()">샘 선택하기</button>
+  </div>`;
+
+  const w = WEEKS[S.submitWeek - 1];
+  const key = `${S.team}_${w.n}`;
+  const existing = S.submissions[key];
+
+  let h = `<div class="section-title">✏️ 미션 제출</div>`;
+  h += `<div class="card" style="margin-bottom:12px;">
+    <div style="font-size:12px;color:var(--muted);margin-bottom:8px;">${S.team}</div>
+    <div class="tabs">`;
+  WEEKS.forEach(wk => {
+    const k2 = `${S.team}_${wk.n}`;
+    const done = !!S.submissions[k2];
+    h += `<button class="tab${S.submitWeek===wk.n?' active':''}" onclick="setSubmitWeek(${wk.n})">
+      ${wk.n}주차${done ? ' ✓' : ''}
+    </button>`;
+  });
+  h += `</div></div>`;
+
+  h += `<div class="card">
+    <div style="font-size:11px;color:var(--muted);">${w.n}주차 · ${w.period}</div>
+    <div style="font-size:18px;font-weight:900;margin:4px 0 3px;">${w.title}</div>
+    <div style="font-size:13px;color:var(--pink-dark);font-weight:700;margin-bottom:10px;">미션: ${w.mission}</div>
+    <div class="mission-box">${w.desc}</div>
+    <form id="sf" onsubmit="return false;">`;
+
+  w.fields.forEach(f => {
+    h += `<div class="form-group"><label class="form-label">${f.label}</label>`;
+    if (f.type === 'image') {
+      const prev = S.previews[f.key];
+      const existUrl = existing?.[f.key];
+      h += `<div class="upload-zone" onclick="triggerFile('${f.key}', 'image/*')">`;
+      if (prev) {
+        h += `<img src="${prev.url}" class="upload-preview" alt="preview">`;
+      } else if (existUrl) {
+        h += `<img src="${existUrl}" class="upload-preview" alt="current">`;
+      } else {
+        h += `<span class="upload-ico">📷</span><div class="upload-hint">탭하여 사진 선택</div>`;
+      }
+      h += `</div><input type="file" id="fi-${f.key}" accept="image/*" style="display:none" onchange="onFileChange(this,'${f.key}')">`;
+    } else if (f.type === 'media') {
+      const prev = S.previews[f.key];
+      const existUrl = existing?.[f.key];
+      const existIsVideo = existing?.mediaType === 'video';
+      h += `<div class="upload-zone" onclick="triggerFile('${f.key}', 'image/*,video/*')">`;
+      if (prev) {
+        if (prev.isVideo) h += `<video src="${prev.url}" class="upload-video" controls></video>`;
+        else h += `<img src="${prev.url}" class="upload-preview" alt="preview">`;
+      } else if (existUrl) {
+        if (existIsVideo) h += `<video src="${existUrl}" class="upload-video" controls></video>`;
+        else h += `<img src="${existUrl}" class="upload-preview" alt="current">`;
+      } else {
+        h += `<span class="upload-ico">📷</span><div class="upload-hint">탭하여 사진 또는 영상 선택</div>`;
+      }
+      h += `</div><input type="file" id="fi-${f.key}" accept="image/*,video/*" style="display:none" onchange="onFileChange(this,'${f.key}')">`;
+    } else if (f.type === 'textarea') {
+      h += `<textarea class="form-input" id="fi-${f.key}" placeholder="${f.ph || ''}">${existing?.[f.key] || ''}</textarea>`;
+    } else if (f.type === 'number') {
+      h += `<input type="number" class="form-input" id="fi-${f.key}" placeholder="${f.ph || ''}" value="${existing?.[f.key] ?? ''}" min="0">`;
+    }
+    h += `</div>`;
+  });
+
+  h += `<button class="btn btn-pink" id="sub-btn" onclick="doSubmit()">
+    ${existing ? '다시 제출하기 🌸' : '제출하기 🌸'}
+  </button>
+  </form></div>`;
+  return h;
+}
+
+/* ── FEED ── */
+function renderFeed() {
+  let h = `<div class="section-title">📋 전체 제출 현황</div>
+    <div class="tabs" style="margin-bottom:14px;">`;
+  WEEKS.forEach(w => {
+    const cnt = TEAMS.filter(t => !!S.submissions[`${t}_${w.n}`]).length;
+    h += `<button class="tab${S.feedWeek===w.n?' active':''}" onclick="setFeedWeek(${w.n})">${w.n}주차 <span style="opacity:0.75;">(${cnt})</span></button>`;
+  });
+  h += `</div>`;
+
+  const wk = WEEKS[S.feedWeek - 1];
+  h += `<div style="font-size:13px;color:var(--muted);margin-bottom:14px;">${wk.title} · ${wk.mission}</div>`;
+
+  const subs = TEAMS.map(t => ({ t, d: S.submissions[`${t}_${S.feedWeek}`], sc: S.scores[`${t}_${S.feedWeek}`] })).filter(x => x.d);
+  if (!subs.length) return h + `<div class="empty-state"><div class="ico">🌱</div>아직 제출한 샘이 없습니다</div>`;
+
+  subs.forEach(({ t, d, sc }) => {
+    const chipCls = sc ? `chip-${sc}` : 'chip-none';
+    const chipTxt = sc ? `${sc}점` : '—';
+    const isVideo = d.mediaType === 'video';
+    h += `<div class="feed-card">
+      <div class="feed-head">
+        <div><div class="feed-team">${t}</div><div class="feed-week">${S.feedWeek}주차 · ${wk.title}</div></div>
+        <div class="score-chip ${chipCls}">${chipTxt}</div>
+      </div>`;
+    if (d.media) {
+      if (isVideo) h += `<video src="${d.media}" class="feed-video" controls playsinline></video>`;
+      else h += `<img src="${d.media}" class="feed-img" alt="제출 이미지" loading="lazy">`;
+    }
+    h += `<div class="feed-body">`;
+    if (d.text) h += `<div class="feed-text">${esc(d.text)}</div>`;
+    if (d.count !== undefined && d.count !== null && d.count !== '') {
+      const lbl = WEEKS[S.feedWeek-1].fields.find(f => f.key==='count')?.label || '참여 인원';
+      h += `<div class="feed-count">👥 ${lbl}: <strong>${d.count}명</strong></div>`;
+    }
+    if (d.updatedAt) h += `<div class="feed-date">${fmtDate(d.updatedAt.toDate?.() || new Date())}</div>`;
+    h += `</div></div>`;
+  });
+  return h;
+}
+
+/* ── LEADERBOARD ── */
+function renderLeaderboard() {
+  const list = TEAMS.map(t => {
+    const wsc = WEEKS.map(w => S.scores[`${t}_${w.n}`] || 0);
+    const total = wsc.reduce((a, b) => a + b, 0);
+    const subCnt = WEEKS.filter(w => !!S.submissions[`${t}_${w.n}`]).length;
+    return { t, wsc, total, subCnt };
+  }).sort((a, b) => b.total - a.total || b.subCnt - a.subCnt);
+
+  const totalSubs = Object.keys(S.submissions).length;
+  const scoredCnt = Object.keys(S.scores).length;
+
+  let h = `<div class="section-title">🏆 순위표</div>
+    <div class="card" style="margin-bottom:16px;">
+      <div class="stat-row">
+        <div class="stat-item"><div class="stat-num" style="color:var(--pink-dark);">${totalSubs}</div><div class="stat-label">총 제출</div></div>
+        <div class="stat-item"><div class="stat-num" style="color:var(--green-dark);">${scoredCnt}</div><div class="stat-label">채점 완료</div></div>
+        <div class="stat-item"><div class="stat-num" style="color:#FFB300;">${TEAMS.length}</div><div class="stat-label">참여 팀</div></div>
+      </div>
+    </div>`;
+
+  list.forEach(({ t, wsc, total, subCnt }, i) => {
+    const rank = i + 1;
+    const emo = rank===1?'🥇':rank===2?'🥈':rank===3?'🥉':rank;
+    const cls = rank<=3?`rank-${rank}`:'';
+    h += `<div class="rank-card">
+      <div class="rank-num ${cls}">${emo}</div>
+      <div class="rank-info">
+        <div class="rank-name">${t}</div>
+        <div class="rank-detail">
+          ${wsc.map((s,i2) => `<span class="week-chip${s?` has-score`:''}">${i2+1}주: ${s||'—'}</span>`).join('')}
+        </div>
+        <div style="font-size:11px;color:var(--muted);margin-top:4px;">제출 ${subCnt} / 6주차</div>
+      </div>
+      <div><div class="rank-total">${total}</div><div class="rank-sub-text">점</div></div>
+    </div>`;
+  });
+  return h;
+}
+
+/* ── ADMIN ── */
+function renderAdmin() {
+  if (!S.isAdmin) {
+    return `<div class="section-title">⚙️ 관리자</div>
+      <div class="card">
+        <div class="form-group">
+          <label class="form-label">관리자 비밀번호</label>
+          <input type="password" class="form-input" id="apw" placeholder="비밀번호 입력"
+            onkeydown="if(event.key==='Enter')adminLogin()">
+        </div>
+        <button class="btn btn-pink" onclick="adminLogin()">로그인</button>
+      </div>`;
+  }
+
+  let h = `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+    <div class="section-title" style="margin:0;">⚙️ 관리자</div>
+    <button onclick="S.isAdmin=false;render()" style="border:none;background:none;color:var(--muted);font-size:13px;cursor:pointer;font-family:inherit;">로그아웃</button>
+  </div>
+  <div class="card" style="margin-bottom:16px;text-align:center;font-size:13px;color:var(--muted);">
+    각 샘의 제출물을 확인하고 점수(1 / 3 / 5점)를 부여하세요
+  </div>`;
+
+  WEEKS.forEach(w => {
+    const subs = TEAMS.map(t => ({ t, d: S.submissions[`${t}_${w.n}`], sc: S.scores[`${t}_${w.n}`] }));
+    const done = subs.filter(s => s.d);
+    const notDone = subs.filter(s => !s.d).map(s => s.t);
+
+    h += `<div style="margin-bottom:24px;">
+      <div class="admin-week-header">
+        <span>${w.n}주차 · ${w.title}</span>
+        <span style="font-size:12px;font-weight:400;color:var(--muted);">${done.length}/${TEAMS.length} 제출</span>
+      </div>`;
+
+    if (!done.length) { h += `<div class="no-submit-text">아직 제출된 내용이 없습니다</div>`; }
+
+    done.forEach(({ t, d, sc }) => {
+      const isVideo = d.mediaType === 'video';
+      h += `<div class="admin-row">
+        <div class="admin-row-team">${t}</div>
+        <span class="preview-toggle" onclick="togglePreview('pv-${t}-${w.n}')">▸ 제출 내용 보기</span>
+        <div class="preview-box" id="pv-${t}-${w.n}">`;
+      if (d.media) {
+        if (isVideo) h += `<video src="${d.media}" style="width:100%;border-radius:8px;margin-bottom:8px;" controls playsinline></video>`;
+        else h += `<img src="${d.media}" style="width:100%;border-radius:8px;margin-bottom:8px;" loading="lazy">`;
+      }
+      if (d.text) h += `<div style="font-size:13px;background:#f7f7f7;padding:10px;border-radius:8px;margin-bottom:8px;white-space:pre-wrap;">${esc(d.text)}</div>`;
+      if (d.count !== undefined && d.count !== '') h += `<div style="font-size:12px;color:var(--muted);margin-bottom:6px;">👥 ${w.fields.find(f=>f.key==='count')?.label || '참여 인원'}: ${d.count}명</div>`;
+      h += `</div>
+        <div class="score-buttons">
+          ${[1,3,5].map(s => `<button class="score-btn${sc===s?` sel-${s}`:''}" onclick="setScore('${t}',${w.n},${s})">${s}점</button>`).join('')}
+        </div>
+      </div>`;
+    });
+
+    if (notDone.length) {
+      h += `<div style="font-size:12px;color:var(--muted);margin-top:6px;padding:6px 0;">
+        미제출: ${notDone.join(', ')}
+      </div>`;
+    }
+    h += `</div>`;
+  });
+  return h;
+}
+
+/* ── TEAM MODAL ── */
+function renderTeamModal() {
+  return `<div class="overlay" onclick="if(event.target===this)closeTeamModal()">
+    <div class="modal">
+      <div class="modal-title">🌱 내 샘 선택</div>
+      <div class="team-grid">
+        ${TEAMS.map(t => `<button class="team-btn${S.team===t?' active':''}" onclick="pickTeam('${t}')">${t}</button>`).join('')}
+      </div>
+      <button class="btn btn-outline" style="margin-top:16px;" onclick="closeTeamModal()">닫기</button>
+    </div>
+  </div>`;
+}
+
+/* ============================================================
+   ACTIONS
+   ============================================================ */
+function go(view) { S.view = view; S.showTeamModal = false; render(); window.scrollTo(0,0); }
+function goSubmit(week) { S.submitWeek = week; S.view = 'submit'; render(); window.scrollTo(0,0); }
+function setSubmitWeek(n) { S.submitWeek = n; S.previews = {}; render(); window.scrollTo(0,0); }
+function setFeedWeek(n) { S.feedWeek = n; render(); }
+
+function openTeamModal() { S.showTeamModal = true; render(); }
+function closeTeamModal() { S.showTeamModal = false; render(); }
+function pickTeam(t) {
+  S.team = t; localStorage.setItem('rv_team', t);
+  S.showTeamModal = false; render();
+  showToast(`${t}로 선택됐습니다 🌸`);
+}
+
+function adminLogin() {
+  const el = document.getElementById('apw');
+  if (!el) return;
+  if (el.value === ADMIN_PW) { S.isAdmin = true; render(); showToast('관리자 로그인 성공'); }
+  else { showToast('비밀번호가 올바르지 않습니다'); el.value = ''; }
+}
+
+function togglePreview(id) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  const tog = el.previousElementSibling;
+  const open = el.classList.toggle('open');
+  if (tog) tog.textContent = (open ? '▾ ' : '▸ ') + '제출 내용 보기';
+}
+
+function triggerFile(key, accept) {
+  const el = document.getElementById(`fi-${key}`);
+  if (el) { el.accept = accept; el.click(); }
+}
+
+function onFileChange(input, key) {
+  if (!input.files?.[0]) return;
+  const file = input.files[0];
+  const isVideo = file.type.startsWith('video/');
+  const url = URL.createObjectURL(file);
+  S.previews[key] = { url, isVideo, file };
+  // Update just the upload zone without full re-render
+  const zone = input.previousElementSibling;
+  if (zone) {
+    if (isVideo) zone.innerHTML = `<video src="${url}" class="upload-video" controls playsinline></video>`;
+    else zone.innerHTML = `<img src="${url}" class="upload-preview" alt="preview">`;
+  }
+}
+
+async function doSubmit() {
+  if (!S.team) { showToast('샘을 먼저 선택해주세요'); return; }
+  const w = WEEKS[S.submitWeek - 1];
+  const btn = document.getElementById('sub-btn');
+  if (btn) { btn.disabled = true; btn.textContent = '업로드 중... ⏳'; }
+
+  try {
+    const data = {};
+    for (const f of w.fields) {
+      if (f.type === 'image' || f.type === 'media') {
+        const prev = S.previews[f.key];
+        if (prev?.file) {
+          const url = await uploadFile(prev.file);
+          data[f.key] = url;
+          if (prev.isVideo) data['mediaType'] = 'video';
+        } else {
+          // Keep existing
+          const ex = S.submissions[`${S.team}_${w.n}`];
+          if (ex?.[f.key]) { data[f.key] = ex[f.key]; if (ex.mediaType) data.mediaType = ex.mediaType; }
+        }
+      } else {
+        const el = document.getElementById(`fi-${f.key}`);
+        if (el) {
+          if (f.type === 'number') data[f.key] = el.value ? parseInt(el.value) : null;
+          else data[f.key] = el.value;
+        }
+      }
+    }
+    await saveSubmission(S.team, w.n, data);
+    S.previews = {};
+    showToast('제출 완료! 🌸');
+    S.view = 'home'; render(); window.scrollTo(0,0);
+  } catch(e) {
+    console.error(e);
+    showToast('오류: ' + e.message);
+    if (btn) { btn.disabled = false; btn.textContent = '제출하기 🌸'; }
+  }
+}
+
+async function setScore(team, week, score) {
+  try {
+    await saveScore(team, week, score);
+    showToast(`${team} ${week}주차 → ${score}점 저장됨`);
+    // scores updated via onSnapshot
+  } catch(e) {
+    showToast('저장 실패: ' + e.message);
+  }
+}
+
+/* ============================================================
+   UTILS
+   ============================================================ */
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  if (!t) return;
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+function esc(s) {
+  if (!s) return '';
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');
+}
+
+function fmtDate(d) {
+  if (!d) return '';
+  return `${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+}
+
+/* ============================================================
+   INIT
+   ============================================================ */
+if (initFB()) {
+  render(); // show spinner
+  startSync();
+} else {
+  render(); // show setup screen
+}
+</script>
+</body>
+</html>
