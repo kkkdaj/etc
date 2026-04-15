@@ -1,0 +1,738 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Re:View 다시, 봄 — 사용 가이드</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', '맑은 고딕', sans-serif;
+      background: #1a1a2e;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      min-height: 100vh; padding: 20px;
+      overflow: hidden;
+    }
+
+    /* ── SLIDER ── */
+    .slider-wrap { position: relative; width: 100%; max-width: 400px; }
+    .slides { position: relative; }
+    .slide {
+      display: none;
+      width: 100%; aspect-ratio: 9/16;
+      border-radius: 24px; overflow: hidden;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+      position: relative;
+    }
+    .slide.active { display: flex; flex-direction: column; }
+
+    /* ── NAV ── */
+    .nav-row {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-top: 16px;
+    }
+    .arrow-btn {
+      width: 40px; height: 40px; border-radius: 50%;
+      border: none; cursor: pointer;
+      background: rgba(255,255,255,0.15); color: white;
+      font-size: 18px; display: flex; align-items: center; justify-content: center;
+      transition: background 0.2s;
+    }
+    .arrow-btn:hover { background: rgba(255,255,255,0.3); }
+    .arrow-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+    .dots { display: flex; gap: 6px; }
+    .dot {
+      width: 7px; height: 7px; border-radius: 50%;
+      background: rgba(255,255,255,0.3); cursor: pointer;
+      transition: all 0.2s;
+    }
+    .dot.active { background: #F0A0B8; width: 20px; border-radius: 4px; }
+    .slide-counter { color: rgba(255,255,255,0.5); font-size: 12px; }
+
+    /* ── SHARED PHONE STYLES ── */
+    .phone-mock {
+      background: #fff8f0;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+      flex: 1;
+      display: flex; flex-direction: column;
+      font-size: 8px;
+    }
+    .ph { /* phone header */
+      background: linear-gradient(145deg, #FAD4DF 0%, #FDEEF2 40%, #E8F5E4 100%);
+      padding: 8px 10px 6px;
+      text-align: center;
+    }
+    .ph-sub { font-size: 6px; color: #B06070; }
+    .ph-title { font-size: 11px; font-weight: 900; color: #8A2840; }
+    .ph-team {
+      display: inline-block; background: rgba(255,255,255,0.75);
+      border-radius: 20px; padding: 2px 8px; font-size: 7px;
+      color: #8A2840; font-weight: 700; margin-top: 4px;
+    }
+    .ph-body { flex: 1; padding: 8px; overflow: hidden; }
+    .ph-nav {
+      display: flex; background: white;
+      border-top: 1px solid #EDE0E6; padding: 5px 0;
+    }
+    .ph-nav-btn {
+      flex: 1; text-align: center; font-size: 6px; color: #9B9B9B;
+      display: flex; flex-direction: column; align-items: center; gap: 1px;
+    }
+    .ph-nav-btn.on { color: #C97A90; }
+    .ph-nav-btn .ni { font-size: 10px; }
+    .wc { /* week card */
+      background: white; border-radius: 8px; padding: 6px 8px;
+      margin-bottom: 5px; border-left: 3px solid #E8A4B8;
+      box-shadow: 0 1px 4px rgba(200,120,150,0.1);
+    }
+    .wc.done { border-left-color: #7DAB73; }
+    .wc.scored { border-left-color: #FFB300; }
+    .wc-n { font-size: 6px; color: #9B9B9B; }
+    .wc-t { font-size: 8px; font-weight: 800; color: #2D2D2D; }
+    .wc-m { font-size: 6.5px; color: #C97A90; }
+    .wc-s {
+      display: inline-block; padding: 1px 6px; border-radius: 10px;
+      font-size: 6px; font-weight: 700; margin-top: 3px;
+    }
+    .s-done { background: #E8F5E9; color: #388E3C; }
+    .s-pend { background: #FFF8E1; color: #F57C00; }
+    .modal-ov {
+      position: absolute; inset: 0;
+      background: rgba(0,0,0,0.4);
+      display: flex; align-items: flex-end;
+    }
+    .modal-box {
+      background: white; border-radius: 16px 16px 0 0;
+      width: 100%; padding: 12px 10px;
+    }
+    .modal-title { font-size: 9px; font-weight: 800; text-align: center; margin-bottom: 8px; }
+    .team-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; margin-bottom: 6px; }
+    .team-btn {
+      padding: 5px 2px; border: 1.5px solid #EDE0E6;
+      border-radius: 6px; font-size: 6.5px; font-weight: 700;
+      text-align: center; background: white; color: #2D2D2D;
+    }
+    .team-btn.sel { border-color: #C97A90; background: #FFF0F5; color: #C97A90; }
+    .pw-box {
+      background: white; border-radius: 16px 16px 0 0;
+      width: 100%; padding: 14px 10px;
+    }
+    .pw-title { font-size: 10px; font-weight: 800; text-align: center; margin-bottom: 3px; }
+    .pw-sub { font-size: 7px; color: #9B9B9B; text-align: center; margin-bottom: 8px; }
+    .pw-input {
+      width: 100%; padding: 6px; border: 2px solid #EDE0E6;
+      border-radius: 6px; font-size: 14px; text-align: center;
+      letter-spacing: 6px; margin-bottom: 6px; color: #2D2D2D;
+    }
+    .pw-input.active { border-color: #E8A4B8; }
+    .btn-mock {
+      width: 100%; padding: 7px; border-radius: 6px;
+      font-size: 8px; font-weight: 700; text-align: center;
+      background: linear-gradient(135deg, #F0A0B8, #C97A90); color: white;
+      margin-bottom: 4px;
+    }
+    .btn-mock.outline {
+      background: none; border: 1.5px solid #E8A4B8; color: #C97A90;
+    }
+    .form-lbl { font-size: 7px; font-weight: 700; margin-bottom: 3px; color: #2D2D2D; }
+    .upload-mock {
+      border: 2px dashed #E8A4B8; border-radius: 6px;
+      padding: 10px; text-align: center;
+      background: #FFF0F5; margin-bottom: 6px;
+    }
+    .upload-mock .ui { font-size: 16px; }
+    .upload-mock .ut { font-size: 6px; color: #9B9B9B; }
+    .input-mock {
+      width: 100%; padding: 5px 8px; border: 2px solid #EDE0E6;
+      border-radius: 6px; font-size: 7px; color: #2D2D2D; margin-bottom: 6px;
+    }
+    .mission-info {
+      background: #FFF0F5; border-radius: 6px; padding: 6px 8px;
+      border-left: 2.5px solid #E8A4B8; margin-bottom: 8px;
+    }
+    .mi-week { font-size: 6px; color: #9B9B9B; }
+    .mi-title { font-size: 9px; font-weight: 900; color: #2D2D2D; }
+    .mi-mission { font-size: 7px; color: #C97A90; font-weight: 700; }
+    .feed-card-m {
+      background: white; border-radius: 8px; overflow: hidden;
+      margin-bottom: 6px; box-shadow: 0 1px 4px rgba(200,120,150,0.1);
+    }
+    .feed-head-m {
+      padding: 5px 8px; display: flex; justify-content: space-between;
+      align-items: center; border-bottom: 1px solid #EDE0E6;
+    }
+    .feed-team-m { font-size: 8px; font-weight: 800; }
+    .feed-week-m { font-size: 6px; color: #9B9B9B; }
+    .chip-m {
+      width: 20px; height: 20px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 7px; font-weight: 900; color: white;
+    }
+    .c5 { background: #FFB300; color: #5D3A00; }
+    .c3 { background: #81C784; }
+    .c1 { background: #64B5F6; }
+    .cn { background: #E0E0E0; color: #999; }
+    .feed-img-m {
+      width: 100%; height: 45px; object-fit: cover;
+      background: linear-gradient(135deg, #f8d7e3, #d4edda);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px;
+    }
+    .feed-body-m { padding: 5px 8px; }
+    .feed-text-m { font-size: 6.5px; color: #2D2D2D; line-height: 1.5; }
+    .feed-count-m { font-size: 6px; color: #9B9B9B; margin-top: 3px; }
+    .rank-card-m {
+      background: white; border-radius: 8px; padding: 6px 8px;
+      margin-bottom: 5px; box-shadow: 0 1px 4px rgba(200,120,150,0.1);
+      display: flex; align-items: center; gap: 6px;
+    }
+    .rank-num-m { font-size: 13px; font-weight: 900; width: 22px; text-align: center; }
+    .r1 { color: #FFD700; }
+    .r2 { color: #ADADAD; }
+    .r3 { color: #CD7F32; }
+    .rank-info-m { flex: 1; }
+    .rank-name-m { font-size: 8px; font-weight: 800; }
+    .rank-chips { display: flex; gap: 2px; margin-top: 2px; flex-wrap: wrap; }
+    .rchip { font-size: 5.5px; padding: 1px 4px; border-radius: 3px; background: #FFF3E0; color: #E65100; font-weight: 700; }
+    .rchip.empty { background: #f5f5f5; color: #9B9B9B; }
+    .rank-total-m { font-size: 16px; font-weight: 900; color: #C97A90; }
+    .admin-row-m {
+      background: white; border-radius: 6px; padding: 6px 8px;
+      margin-bottom: 5px; box-shadow: 0 1px 4px rgba(200,120,150,0.1);
+    }
+    .admin-team-m { font-size: 7.5px; font-weight: 700; margin-bottom: 4px; }
+    .score-btns-m { display: flex; gap: 3px; }
+    .sbtn {
+      flex: 1; padding: 5px; border: 2px solid #EDE0E6;
+      border-radius: 5px; font-size: 8px; font-weight: 800; text-align: center;
+    }
+    .sbtn.s5 { border-color: #FFB300; background: #FFFDE7; color: #E65100; }
+    .sbtn.s3 { border-color: #81C784; background: #E8F5E9; color: #1B5E20; }
+    .adm-week-hdr {
+      font-size: 8px; font-weight: 800; margin-bottom: 5px;
+      padding-bottom: 4px; border-bottom: 1.5px solid #EDE0E6;
+      display: flex; justify-content: space-between;
+    }
+    .section-title-m {
+      font-size: 10px; font-weight: 900; margin-bottom: 7px; color: #2D2D2D;
+    }
+    .stat-row-m { display: flex; text-align: center; margin-bottom: 8px; }
+    .stat-item-m { flex: 1; }
+    .stat-item-m + .stat-item-m { border-left: 1px solid #EDE0E6; }
+    .stat-num-m { font-size: 14px; font-weight: 900; }
+    .stat-lbl-m { font-size: 6px; color: #9B9B9B; }
+    .preview-tog { font-size: 6.5px; color: #C97A90; margin-bottom: 4px; }
+    .pw-mgmt { background: white; border-radius: 6px; padding: 6px 8px; margin-bottom: 6px; }
+    .pw-mgmt-title { font-size: 8px; font-weight: 800; margin-bottom: 5px; padding-bottom: 3px; border-bottom: 1.5px solid #EDE0E6; }
+    .pw-row { display: flex; align-items: center; gap: 5px; margin-bottom: 4px; }
+    .pw-row-name { font-size: 7px; font-weight: 700; flex: 1; }
+    .pw-row-input {
+      width: 55px; padding: 3px 5px; border: 1.5px solid #EDE0E6;
+      border-radius: 4px; font-size: 8px; text-align: center;
+      font-weight: 700; color: #2D2D2D;
+    }
+    .save-btn-m {
+      padding: 3px 8px; background: linear-gradient(135deg, #F0A0B8, #C97A90);
+      border-radius: 4px; font-size: 6px; font-weight: 700; color: white;
+    }
+
+    /* ── CARD DESIGNS ── */
+
+    /* Card 1 — Cover */
+    .card-cover {
+      background: linear-gradient(160deg, #FAD4DF 0%, #FDEEF2 35%, #E8F5E4 70%, #D4EDDA 100%);
+      flex-direction: column; align-items: center; justify-content: center;
+      padding: 32px 28px;
+      position: relative; overflow: hidden;
+    }
+    .petal { position: absolute; font-size: 28px; opacity: 0.25; }
+    .cover-badge {
+      background: rgba(255,255,255,0.7); border-radius: 20px;
+      padding: 6px 16px; font-size: 11px; font-weight: 700;
+      color: #B06070; margin-bottom: 16px; letter-spacing: 0.5px;
+    }
+    .cover-title { font-size: 34px; font-weight: 900; color: #8A2840; text-align: center; line-height: 1.2; margin-bottom: 8px; }
+    .cover-sub { font-size: 14px; color: #C07080; text-align: center; margin-bottom: 28px; }
+    .cover-guide-badge {
+      background: #8A2840; color: white; border-radius: 12px;
+      padding: 8px 20px; font-size: 13px; font-weight: 800;
+      margin-bottom: 32px;
+    }
+    .cover-steps {
+      width: 100%; background: rgba(255,255,255,0.6);
+      border-radius: 16px; padding: 16px;
+    }
+    .cover-step {
+      display: flex; align-items: center; gap: 10px;
+      margin-bottom: 10px; font-size: 12px; color: #5D3040; font-weight: 600;
+    }
+    .cover-step:last-child { margin-bottom: 0; }
+    .cover-step-num {
+      width: 24px; height: 24px; border-radius: 50%;
+      background: #E8A4B8; color: white; font-size: 11px;
+      font-weight: 900; display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+
+    /* Card layout with desc */
+    .card-layout {
+      flex-direction: column;
+    }
+    .card-top {
+      flex: 1; padding: 16px 16px 10px;
+      display: flex; flex-direction: column;
+    }
+    .card-bottom {
+      padding: 14px 18px 16px;
+      background: white;
+    }
+    .card-num {
+      font-size: 10px; font-weight: 800; color: #C97A90;
+      letter-spacing: 1px; margin-bottom: 4px;
+    }
+    .card-title {
+      font-size: 18px; font-weight: 900; color: #2D2D2D;
+      margin-bottom: 10px; line-height: 1.3;
+    }
+    .card-desc { font-size: 12px; color: #666; line-height: 1.7; }
+    .card-tip {
+      display: flex; align-items: flex-start; gap: 6px;
+      background: #FFF0F5; border-radius: 8px; padding: 8px 10px;
+      margin-top: 8px; font-size: 11px; color: #C97A90; font-weight: 600;
+      line-height: 1.5;
+    }
+
+    /* BG colors per card */
+    .bg1 { background: linear-gradient(160deg, #FAD4DF, #FDEEF2, #E8F5E4); }
+    .bg2 { background: linear-gradient(160deg, #FFF0F5, #FFF9F0); }
+    .bg3 { background: linear-gradient(160deg, #F0F5FF, #FFF0F5); }
+    .bg4 { background: linear-gradient(160deg, #FFF0F5, #F0FFF4); }
+    .bg5 { background: linear-gradient(160deg, #FFFDE7, #FFF0F5); }
+    .bg6 { background: linear-gradient(160deg, #F0FFF4, #E3F2FD); }
+    .bg7 { background: linear-gradient(160deg, #FFF3E0, #FFF0F5); }
+  </style>
+</head>
+<body>
+
+<div class="slider-wrap">
+  <div class="slides">
+
+    <!-- ══ CARD 1: COVER ══ -->
+    <div class="slide active card-cover">
+      <div class="petal" style="top:5%;left:5%;transform:rotate(-20deg);">🌸</div>
+      <div class="petal" style="top:8%;right:8%;transform:rotate(15deg);">🌿</div>
+      <div class="petal" style="bottom:15%;left:3%;transform:rotate(10deg);">🌷</div>
+      <div class="petal" style="bottom:10%;right:5%;transform:rotate(-10deg);">🌸</div>
+      <div class="petal" style="top:30%;right:2%;font-size:20px;">✿</div>
+
+      <div class="cover-badge">부활절 기쁨의 50일 프로젝트</div>
+      <div style="font-size:52px;margin-bottom:8px;">🌸</div>
+      <div class="cover-title">Re:View<br>다시, 봄</div>
+      <div class="cover-sub">앱 사용 가이드</div>
+      <div class="cover-guide-badge">📱 이렇게 사용하세요!</div>
+
+      <div class="cover-steps">
+        <div class="cover-step"><div class="cover-step-num">1</div>샘 선택 — 비밀번호 입력</div>
+        <div class="cover-step"><div class="cover-step-num">2</div>홈 화면 — 미션 현황 확인</div>
+        <div class="cover-step"><div class="cover-step-num">3</div>제출 — 사진·내용 업로드</div>
+        <div class="cover-step"><div class="cover-step-num">4</div>전체보기 — 다른 샘 결과 확인</div>
+        <div class="cover-step"><div class="cover-step-num">5</div>순위 — 실시간 점수 확인</div>
+        <div class="cover-step"><div class="cover-step-num">6</div>관리자 — 점수 부여</div>
+      </div>
+    </div>
+
+    <!-- ══ CARD 2 (순서이동): 샘 선택 ══ -->
+    <div class="slide card-layout bg3">
+      <div class="card-top">
+        <div class="card-num">STEP 01</div>
+        <div class="card-title">샘 선택 🌱<br>비밀번호 입력</div>
+        <div class="phone-mock" style="position:relative;">
+          <div class="ph">
+            <div class="ph-sub">부활절 기쁨의 50일 프로젝트</div>
+            <div class="ph-title">Re:View 다시, 봄 🌸</div>
+            <div class="ph-team">👤 샘 선택하기 ▾</div>
+          </div>
+          <div class="ph-body">
+            <div style="font-size:8px;font-weight:800;margin-bottom:5px;">📅 주차별 미션</div>
+            <div class="wc"><div class="wc-n">1주차 · 4/12-18</div><div class="wc-t">다시 바라, 봄</div><span class="wc-s s-pend">미제출</span></div>
+            <div class="wc"><div class="wc-n">2주차 · 4/19-25</div><div class="wc-t">다시 일어나, 봄</div><span class="wc-s s-pend">미제출</span></div>
+          </div>
+          <div class="ph-nav">
+            <div class="ph-nav-btn on"><span class="ni">🏠</span>홈</div>
+            <div class="ph-nav-btn"><span class="ni">✏️</span>제출</div>
+            <div class="ph-nav-btn"><span class="ni">📋</span>전체보기</div>
+            <div class="ph-nav-btn"><span class="ni">🏆</span>순위</div>
+            <div class="ph-nav-btn"><span class="ni">⚙️</span>관리자</div>
+          </div>
+          <div class="modal-ov">
+            <div class="pw-box">
+              <div class="pw-title">🔒 신지은샘</div>
+              <div class="pw-sub">비밀번호를 입력하세요</div>
+              <input class="pw-input active" type="password" value="••••" readonly>
+              <div class="btn-mock">확인</div>
+              <div class="btn-mock outline">뒤로</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="card-bottom">
+        <div class="card-desc">상단 버튼을 눌러 내 샘을 선택하세요.<br>샘 선택 → 비밀번호 입력 후 확인을 누르면 입장!</div>
+        <div class="card-tip">💡 비밀번호는 각 샘별로 다르게 설정되어 있어요.<br>샘선택은 샘터지기만 가능!</div>
+      </div>
+    </div>
+
+    <!-- ══ CARD 3 (순서이동): 홈 ══ -->
+    <div class="slide card-layout bg2">
+      <div class="card-top">
+        <div class="card-num">STEP 02</div>
+        <div class="card-title">홈 화면 👀<br>미션 현황 한눈에</div>
+        <div class="phone-mock">
+          <div class="ph">
+            <div class="ph-sub">부활절 기쁨의 50일 프로젝트</div>
+            <div class="ph-title">Re:View 다시, 봄 🌸</div>
+            <div class="ph-team">🌱 권서영샘 ▾</div>
+            <div style="display:flex;gap:4px;justify-content:center;margin-top:4px;">
+              <div style="width:6px;height:6px;border-radius:50%;background:#5CBF6A;"></div>
+              <div style="width:6px;height:6px;border-radius:50%;background:#FFB74D;"></div>
+              <div style="width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,0.4);"></div>
+              <div style="width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,0.4);"></div>
+              <div style="width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,0.4);"></div>
+              <div style="width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,0.4);"></div>
+            </div>
+          </div>
+          <div class="ph-body">
+            <div style="font-size:8px;font-weight:800;margin-bottom:5px;">📅 주차별 미션</div>
+            <div class="wc done">
+              <div class="wc-n">1주차 · 4/12-18</div>
+              <div class="wc-t">다시 바라, 봄</div>
+              <div class="wc-m">미션: 말씀 묵상노트 작성</div>
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-top:2px;">
+                <span class="wc-s s-done">✓ 제출완료</span>
+                <span style="font-size:7px;font-weight:800;color:#F57C00;">5점</span>
+              </div>
+            </div>
+            <div class="wc scored">
+              <div class="wc-n">2주차 · 4/19-25</div>
+              <div class="wc-t">다시 일어나, 봄</div>
+              <div class="wc-m">미션: 사연 공모전</div>
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-top:2px;">
+                <span class="wc-s s-done">✓ 제출완료</span>
+                <span style="font-size:7px;font-weight:800;color:#F57C00;">3점</span>
+              </div>
+            </div>
+            <div class="wc">
+              <div class="wc-n">3주차 · 4/26-5/2</div>
+              <div class="wc-t">다시 기뻐해, 봄</div>
+              <div class="wc-m">미션: 단체사진 콘테스트</div>
+              <span class="wc-s s-pend">미제출</span>
+            </div>
+            <div style="background:white;border-radius:8px;padding:6px;text-align:center;margin-top:4px;box-shadow:0 1px 4px rgba(200,120,150,0.1);">
+              <div style="font-size:6px;color:#9B9B9B;">권서영샘 현재 총점</div>
+              <div style="font-size:18px;font-weight:900;color:#C97A90;">8<span style="font-size:9px;">점</span></div>
+            </div>
+          </div>
+          <div class="ph-nav">
+            <div class="ph-nav-btn on"><span class="ni">🏠</span>홈</div>
+            <div class="ph-nav-btn"><span class="ni">✏️</span>제출</div>
+            <div class="ph-nav-btn"><span class="ni">📋</span>전체보기</div>
+            <div class="ph-nav-btn"><span class="ni">🏆</span>순위</div>
+            <div class="ph-nav-btn"><span class="ni">⚙️</span>관리자</div>
+          </div>
+        </div>
+      </div>
+      <div class="card-bottom">
+        <div class="card-desc">6주간의 미션을 한눈에 확인하세요.<br>제출 완료된 주차와 받은 점수, 현재 총점도 바로 볼 수 있어요.</div>
+        <div class="card-tip">💡 헤더의 점 6개로 제출 현황을 빠르게 파악할 수 있어요!<br>홈 화면은 샘터지기만 볼 수 있어요.</div>
+      </div>
+    </div>
+
+    <!-- ══ CARD 4: 미션 제출 ══ -->
+    <div class="slide card-layout bg4">
+      <div class="card-top">
+        <div class="card-num">STEP 03</div>
+        <div class="card-title">미션 제출 ✏️<br>사진과 내용 올리기</div>
+        <div class="phone-mock">
+          <div class="ph">
+            <div class="ph-sub">부활절 기쁨의 50일 프로젝트</div>
+            <div class="ph-title">Re:View 다시, 봄 🌸</div>
+            <div class="ph-team">🌱 권서영샘 ▾</div>
+          </div>
+          <div class="ph-body">
+            <div style="font-size:8.5px;font-weight:800;margin-bottom:5px;">✏️ 미션 제출</div>
+            <div style="display:flex;gap:3px;margin-bottom:5px;">
+              <div style="padding:3px 7px;border-radius:10px;background:#C97A90;color:white;font-size:6.5px;font-weight:700;">1주차</div>
+              <div style="padding:3px 7px;border-radius:10px;border:1.5px solid #EDE0E6;font-size:6.5px;color:#9B9B9B;">2주차</div>
+              <div style="padding:3px 7px;border-radius:10px;border:1.5px solid #EDE0E6;font-size:6.5px;color:#9B9B9B;">3주차</div>
+              <div style="padding:3px 7px;border-radius:10px;border:1.5px solid #EDE0E6;font-size:6.5px;color:#9B9B9B;">4주차</div>
+            </div>
+            <div class="mission-info">
+              <div class="mi-week">1주차 · 4/12-18</div>
+              <div class="mi-title">다시 바라, 봄</div>
+              <div class="mi-mission">미션: 말씀 묵상노트 작성</div>
+            </div>
+            <div class="form-lbl">베스트 묵상 사진</div>
+            <div class="upload-mock">
+              <div class="ui">📷</div>
+              <div class="ut">탭하여 사진 선택</div>
+            </div>
+            <div class="form-lbl">전체 묵상 횟수</div>
+            <input class="input-mock" placeholder="예) 18" readonly>
+            <div class="btn-mock">제출하기 🌸</div>
+          </div>
+          <div class="ph-nav">
+            <div class="ph-nav-btn"><span class="ni">🏠</span>홈</div>
+            <div class="ph-nav-btn on"><span class="ni">✏️</span>제출</div>
+            <div class="ph-nav-btn"><span class="ni">📋</span>전체보기</div>
+            <div class="ph-nav-btn"><span class="ni">🏆</span>순위</div>
+            <div class="ph-nav-btn"><span class="ni">⚙️</span>관리자</div>
+          </div>
+        </div>
+      </div>
+      <div class="card-bottom">
+        <div class="card-desc">주차를 선택하고 미션 내용에 맞게 사진과 정보를 입력한 뒤 제출하세요.</div>
+        <div class="card-tip">💡 이미 제출한 주차는 '다시 제출하기'로 수정 가능해요!<br>미션 제출 화면은 샘터지기만 볼 수 있어요.</div>
+      </div>
+    </div>
+
+    <!-- ══ CARD 5: 전체보기 ══ -->
+    <div class="slide card-layout bg5">
+      <div class="card-top">
+        <div class="card-num">STEP 04</div>
+        <div class="card-title">전체보기 📋<br>다른 샘 결과 확인</div>
+        <div class="phone-mock">
+          <div class="ph">
+            <div class="ph-sub">부활절 기쁨의 50일 프로젝트</div>
+            <div class="ph-title">Re:View 다시, 봄 🌸</div>
+            <div class="ph-team">🌱 권서영샘 ▾</div>
+          </div>
+          <div class="ph-body">
+            <div style="font-size:8.5px;font-weight:800;margin-bottom:5px;">📋 전체 제출 현황</div>
+            <div style="display:flex;gap:3px;margin-bottom:6px;">
+              <div style="padding:3px 7px;border-radius:10px;background:#C97A90;color:white;font-size:6.5px;font-weight:700;">1주차 (8)</div>
+              <div style="padding:3px 7px;border-radius:10px;border:1.5px solid #EDE0E6;font-size:6.5px;color:#9B9B9B;">2주차 (5)</div>
+              <div style="padding:3px 7px;border-radius:10px;border:1.5px solid #EDE0E6;font-size:6.5px;color:#9B9B9B;">3주차 (3)</div>
+            </div>
+            <div class="feed-card-m">
+              <div class="feed-head-m">
+                <div><div class="feed-team-m">신지은샘</div><div class="feed-week-m">1주차 · 다시 바라, 봄</div></div>
+                <div class="chip-m c5">5점</div>
+              </div>
+              <div class="feed-img-m">📖</div>
+              <div class="feed-body-m">
+                <div class="feed-count-m">👥 전체 묵상 횟수: <strong>21명</strong></div>
+              </div>
+            </div>
+            <div class="feed-card-m">
+              <div class="feed-head-m">
+                <div><div class="feed-team-m">인정한샘</div><div class="feed-week-m">1주차 · 다시 바라, 봄</div></div>
+                <div class="chip-m c3">3점</div>
+              </div>
+              <div class="feed-img-m">🙏</div>
+              <div class="feed-body-m">
+                <div class="feed-count-m">👥 전체 묵상 횟수: <strong>15명</strong></div>
+              </div>
+            </div>
+          </div>
+          <div class="ph-nav">
+            <div class="ph-nav-btn"><span class="ni">🏠</span>홈</div>
+            <div class="ph-nav-btn"><span class="ni">✏️</span>제출</div>
+            <div class="ph-nav-btn on"><span class="ni">📋</span>전체보기</div>
+            <div class="ph-nav-btn"><span class="ni">🏆</span>순위</div>
+            <div class="ph-nav-btn"><span class="ni">⚙️</span>관리자</div>
+          </div>
+        </div>
+      </div>
+      <div class="card-bottom">
+        <div class="card-desc">주차 탭을 눌러 다른 샘들의 제출 내용을 확인하세요. 점수도 함께 표시돼요.</div>
+        <div class="card-tip">💡 누구나 비밀번호 없이 전체보기를 볼 수 있어요!</div>
+      </div>
+    </div>
+
+    <!-- ══ CARD 6: 순위 ══ -->
+    <div class="slide card-layout bg5">
+      <div class="card-top">
+        <div class="card-num">STEP 05</div>
+        <div class="card-title">순위 🏆<br>실시간 점수 확인</div>
+        <div class="phone-mock">
+          <div class="ph">
+            <div class="ph-sub">부활절 기쁨의 50일 프로젝트</div>
+            <div class="ph-title">Re:View 다시, 봄 🌸</div>
+            <div class="ph-team">🌱 권서영샘 ▾</div>
+          </div>
+          <div class="ph-body">
+            <div style="font-size:8.5px;font-weight:800;margin-bottom:5px;">🏆 순위표</div>
+            <div style="background:white;border-radius:8px;padding:6px;margin-bottom:6px;box-shadow:0 1px 4px rgba(200,120,150,0.1);">
+              <div class="stat-row-m">
+                <div class="stat-item-m"><div class="stat-num-m" style="color:#C97A90;">18</div><div class="stat-lbl-m">총 제출</div></div>
+                <div class="stat-item-m"><div class="stat-num-m" style="color:#7DAB73;">12</div><div class="stat-lbl-m">채점 완료</div></div>
+                <div class="stat-item-m"><div class="stat-num-m" style="color:#FFB300;">15</div><div class="stat-lbl-m">참여 샘</div></div>
+              </div>
+            </div>
+            <div class="rank-card-m">
+              <div class="rank-num-m r1">🥇</div>
+              <div class="rank-info-m">
+                <div class="rank-name-m">신지은샘</div>
+                <div class="rank-chips">
+                  <span class="rchip">1주:5</span><span class="rchip">2주:5</span><span class="rchip">3주:3</span>
+                  <span class="rchip empty">4주:—</span><span class="rchip empty">5주:—</span><span class="rchip empty">6주:—</span>
+                </div>
+              </div>
+              <div class="rank-total-m">13</div>
+            </div>
+            <div class="rank-card-m">
+              <div class="rank-num-m r2">🥈</div>
+              <div class="rank-info-m">
+                <div class="rank-name-m">인정한샘</div>
+                <div class="rank-chips">
+                  <span class="rchip">1주:5</span><span class="rchip">2주:3</span><span class="rchip">3주:3</span>
+                  <span class="rchip empty">4주:—</span><span class="rchip empty">5주:—</span><span class="rchip empty">6주:—</span>
+                </div>
+              </div>
+              <div class="rank-total-m">11</div>
+            </div>
+            <div class="rank-card-m">
+              <div class="rank-num-m r3">🥉</div>
+              <div class="rank-info-m">
+                <div class="rank-name-m">권서영샘</div>
+                <div class="rank-chips">
+                  <span class="rchip">1주:5</span><span class="rchip">2주:3</span><span class="rchip empty">3주:—</span>
+                </div>
+              </div>
+              <div class="rank-total-m">8</div>
+            </div>
+          </div>
+          <div class="ph-nav">
+            <div class="ph-nav-btn"><span class="ni">🏠</span>홈</div>
+            <div class="ph-nav-btn"><span class="ni">✏️</span>제출</div>
+            <div class="ph-nav-btn"><span class="ni">📋</span>전체보기</div>
+            <div class="ph-nav-btn on"><span class="ni">🏆</span>순위</div>
+            <div class="ph-nav-btn"><span class="ni">⚙️</span>관리자</div>
+          </div>
+        </div>
+      </div>
+      <div class="card-bottom">
+        <div class="card-desc">전체 샘의 주차별 점수와 총점 순위를 실시간으로 확인하세요. 동점이면 공동 순위로 표시돼요.</div>
+        <div class="card-tip">🥇🥈🥉 상위 3위에는 메달이 표시돼요!</div>
+      </div>
+    </div>
+
+    <!-- ══ CARD 7: 관리자 ══ -->
+    <div class="slide card-layout bg7">
+      <div class="card-top">
+        <div class="card-num">STEP 06</div>
+        <div class="card-title">관리자 ⚙️<br>점수 부여 & 비밀번호 관리</div>
+        <div class="phone-mock">
+          <div class="ph">
+            <div class="ph-sub">부활절 기쁨의 50일 프로젝트</div>
+            <div class="ph-title">Re:View 다시, 봄 🌸</div>
+            <div class="ph-team">🌱 권서영샘 ▾</div>
+          </div>
+          <div class="ph-body">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+              <div style="font-size:9px;font-weight:900;">⚙️ 관리자</div>
+              <div style="font-size:6px;color:#9B9B9B;">로그아웃</div>
+            </div>
+            <div class="pw-mgmt">
+              <div class="pw-mgmt-title" style="display:flex;justify-content:space-between;">
+                🔑 샘별 비밀번호 관리
+                <span class="save-btn-m">저장</span>
+              </div>
+              <div class="pw-row"><div class="pw-row-name">권서영샘</div><input class="pw-row-input" value="••••" readonly></div>
+              <div class="pw-row"><div class="pw-row-name">최원석샘</div><input class="pw-row-input" value="••••" readonly></div>
+              <div class="pw-row"><div class="pw-row-name">신지은샘</div><input class="pw-row-input" value="••••" readonly></div>
+            </div>
+            <div>
+              <div class="adm-week-hdr">
+                <span>1주차 · 다시 바라, 봄</span>
+                <span style="font-weight:400;color:#9B9B9B;">8/15 제출</span>
+              </div>
+              <div class="admin-row-m">
+                <div class="admin-team-m">신지은샘</div>
+                <div class="preview-tog">▸ 제출 내용 보기</div>
+                <div class="score-btns-m">
+                  <div class="sbtn">1점</div>
+                  <div class="sbtn s3">3점</div>
+                  <div class="sbtn">5점</div>
+                </div>
+              </div>
+              <div class="admin-row-m">
+                <div class="admin-team-m">인정한샘</div>
+                <div class="preview-tog">▸ 제출 내용 보기</div>
+                <div class="score-btns-m">
+                  <div class="sbtn">1점</div>
+                  <div class="sbtn">3점</div>
+                  <div class="sbtn s5">5점</div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="ph-nav">
+            <div class="ph-nav-btn"><span class="ni">🏠</span>홈</div>
+            <div class="ph-nav-btn"><span class="ni">✏️</span>제출</div>
+            <div class="ph-nav-btn"><span class="ni">📋</span>전체보기</div>
+            <div class="ph-nav-btn"><span class="ni">🏆</span>순위</div>
+            <div class="ph-nav-btn on"><span class="ni">⚙️</span>관리자</div>
+          </div>
+        </div>
+      </div>
+      <div class="card-bottom">
+        <div class="card-desc">관리자 비밀번호로 로그인 후 '제출 내용 보기'를 눌러 각 샘의 제출물을 확인하고 1 / 3 / 5점을 부여하세요. 샘별 비밀번호도 여기서 변경 가능해요.</div>
+        <div class="card-tip">💡 점수를 저장하면 순위표에 즉시 반영돼요!</div>
+      </div>
+    </div>
+
+  </div><!-- /slides -->
+
+  <!-- NAV -->
+  <div class="nav-row">
+    <button class="arrow-btn" id="prev" onclick="move(-1)" disabled>←</button>
+    <div class="dots" id="dots"></div>
+    <button class="arrow-btn" id="next" onclick="move(1)">→</button>
+  </div>
+</div>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const dotsEl = document.getElementById('dots');
+  let cur = 0;
+
+  // Build dots
+  slides.forEach((_, i) => {
+    const d = document.createElement('div');
+    d.className = 'dot' + (i===0?' active':'');
+    d.onclick = () => goTo(i);
+    dotsEl.appendChild(d);
+  });
+
+  function goTo(n) {
+    slides[cur].classList.remove('active');
+    dotsEl.children[cur].classList.remove('active');
+    cur = n;
+    slides[cur].classList.add('active');
+    dotsEl.children[cur].classList.add('active');
+    document.getElementById('prev').disabled = cur === 0;
+    document.getElementById('next').disabled = cur === slides.length - 1;
+  }
+
+  function move(dir) { goTo(cur + dir); }
+
+  // Keyboard
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight' && cur < slides.length-1) move(1);
+    if (e.key === 'ArrowLeft' && cur > 0) move(-1);
+  });
+
+  // Touch swipe
+  let startX = 0;
+  document.querySelector('.slides').addEventListener('touchstart', e => startX = e.touches[0].clientX);
+  document.querySelector('.slides').addEventListener('touchend', e => {
+    const dx = e.changedTouches[0].clientX - startX;
+    if (dx < -50 && cur < slides.length-1) move(1);
+    if (dx > 50 && cur > 0) move(-1);
+  });
+</script>
+</body>
+</html>
